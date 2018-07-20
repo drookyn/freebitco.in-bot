@@ -13,9 +13,10 @@ from random import randint
 from fake_useragent import UserAgent
 from raven import Client
 from dotenv import load_dotenv
+from pathlib import Path
 
-load_dotenv()
-
+env_path = Path('.') / '.env'
+load_dotenv(dotenv_path=env_path, verbose=True)
 
 class FreebitcoinBot():
     def __init__(self):
