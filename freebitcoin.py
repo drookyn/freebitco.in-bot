@@ -3,6 +3,7 @@ import os.path
 import requests
 import sched
 import time
+import logging
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -18,14 +19,37 @@ from pathlib import Path
 env_path = Path('.') / '.env'
 load_dotenv(dotenv_path=env_path, verbose=True)
 
+class Log():
+    def __init__(self):
+        self.logger = logging.getLogger(__name__)
+        self.logger.setLevel(logging.DEBUG)
+
+        # create formatter
+        formatter = logging.Formatter('%(asctime)s:%(levelname)s:%(message)s')
+
+        # create console handler
+        consoleHandler = logging.StreamHandler()
+        consoleHandler.setLevel(logging.DEBUG)
+        consoleHandler.setFormatter(formatter)
+
+        # create file handler
+        fileHandler = logging.FileHandler('info.log')
+        fileHandler.setLevel(logging.INFO)
+        fileHandler.setFormatter(formatter)
+
+        # add handler to logger
+        self.logger.addHandler(consoleHandler)
+        self.logger.addHandler(fileHandler)
+
 class FreebitcoinBot():
     def __init__(self):
-        print('initializing...')
+        self.log = Log()
+        self.log.logger.info('initializing')
         self.base_url = 'https://freebitco.in/'
         self.useragent = UserAgent()
 
     def start_driver(self):
-        print('starting driver...')
+        self.log.logger.info('starting driver')
         self.display = Display(visible=0, size=(800, 600))
         self.display.start()
         self.profile = webdriver.FirefoxProfile()
@@ -34,7 +58,7 @@ class FreebitcoinBot():
         self.driver = webdriver.Firefox(self.profile)
 
     def close_driver(self):
-        print('closing driver...')
+        self.log.logger.info('closing driver')
         self.display.stop()
         self.driver.quit()
 
@@ -42,7 +66,7 @@ class FreebitcoinBot():
         self.driver.get(url)
 
     def login(self):
-        print('login...')
+        self.log.logger.info('login')
         login_button = WebDriverWait(self.driver, 10).until(
             EC.visibility_of_element_located(
                 (By.XPATH, '//*[contains(@class, "login_menu_button")]//a'))
@@ -60,6 +84,7 @@ class FreebitcoinBot():
         password_field.send_keys(os.getenv('PASSWORD'))
 
         self.driver.find_element_by_id('login_button').click()
+        self.log.logger.info('login success')
 
     def set_play_buttons(self):
         try:
@@ -107,7 +132,7 @@ class FreebitcoinBot():
             pass
 
     def roll(self):
-        print('roll...')
+        self.log.logger.info('roll')
         try:
             self.set_play_buttons()
             self.no_captcha_button.click()
@@ -117,12 +142,13 @@ class FreebitcoinBot():
             self.role_result = WebDriverWait(self.driver, 60).until(
                 EC.visibility_of_element_located((By.ID, 'winnings'))
             )
-            print('...won {} BTC'.format(self.role_result.text))
+            self.log.logger.info('role success')
+            self.log.logger.info('rolled {} BTC'.format(self.role_result.text))
         except:
             pass
 
     def notify(self):
-        print('notify...')
+        self.log.logger.info('notify')
         try:
             secret = os.getenv('MERCURIUS_SECRET')
             if hasattr(self, 'role_result') and secret:
@@ -130,12 +156,14 @@ class FreebitcoinBot():
                     'https://www.mercuriusbot.io/api/notify',
                     data={
                         'secret': secret,
-                        'message': 'free bitcoin: {} BTC'.format(self.role_result.text)
+                        'message': 'rolled {} BTC'.format(self.role_result.text)
                     }
                 )
 
-                if res.status_code == 400:
-                    print(res.text)
+                if res.status_code != 200:
+                    self.log.logger.error(res.text)
+                else:
+                    self.log.logger.info('notify success')
         except:
             pass
 
@@ -155,6 +183,8 @@ class FreebitcoinBot():
             if not hasattr(self, 'time_remaining') or not self.time_remaining:
                 self.roll()
                 self.notify()
+            else:
+                self.log.logger.info('already played')
         finally:
             self.close_driver()
 
