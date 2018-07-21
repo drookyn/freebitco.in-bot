@@ -4,11 +4,13 @@ import requests
 import sched
 import time
 import logging
+import sys
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.firefox.options import Options
 from pyvirtualdisplay import Display
 from random import randint
 from fake_useragent import UserAgent
@@ -54,8 +56,13 @@ class FreebitcoinBot():
         self.display.start()
         self.profile = webdriver.FirefoxProfile()
         self.profile.set_preference(
-            "general.useragent.override", self.useragent.random)
-        self.driver = webdriver.Firefox(self.profile)
+            "general.useragent.override",
+            self.useragent.random
+        )
+        options = Options()
+        options.set_headless(headless=(os.getenv('HEADLESS') == 'True'))
+        self.driver = webdriver.Firefox(self.profile, firefox_options=options)
+        self.driver.implicitly_wait(5)
 
     def close_driver(self):
         self.log.logger.info('closing driver')
@@ -99,19 +106,6 @@ class FreebitcoinBot():
         except:
             pass
 
-    def save_cookies(self):
-        pickle.dump(self.driver.get_cookies(), open(
-            os.getenv('COOKIE_FILE'), 'wb'))
-
-    def load_cookies(self):
-        if os.path.isfile(os.getenv('COOKIE_FILE')):
-            cookies = pickle.load(open(os.getenv('COOKIE_FILE'), 'rb'))
-            try:
-                for cookie in cookies:
-                    self.driver.add_cookie(cookie)
-            except:
-                pass
-
     def dissmiss_consent(self):
         try:
             consent_button = WebDriverWait(self.driver, 10).until(
@@ -137,7 +131,6 @@ class FreebitcoinBot():
             self.set_play_buttons()
             self.no_captcha_button.click()
             self.play_button.click()
-            self.save_cookies()
 
             self.role_result = WebDriverWait(self.driver, 60).until(
                 EC.visibility_of_element_located((By.ID, 'winnings'))
@@ -171,7 +164,6 @@ class FreebitcoinBot():
         try:
             self.start_driver()
             self.get_page(self.base_url)
-            self.load_cookies()
             self.set_play_buttons()
 
             if not hasattr(self, 'no_captcha_button') or not hasattr(self, 'play_button'):
@@ -216,6 +208,8 @@ def main():
     try:
         scheduler = Scheduler()
         scheduler.start()
+    except KeyboardInterrupt:
+        sys.exit()
     except:
         if sentry_url:
             client.captureException()
