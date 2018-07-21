@@ -18,5 +18,5 @@ After that add your email and your password in the .env file.
 
 ### Run
 ```sh
-python3 freebitcoin.py # nohup python3 freebitcoin.py &
+python3 main.py # nohup python3 main.py &
 ```
