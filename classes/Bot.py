@@ -66,7 +66,18 @@ class Bot():
 
         # send login data
         self.driver.find_element_by_id('login_button').click()
+
+        # check for error
+        error_field = WebDriverWait(self.driver, 10).until(
+            EC.visibility_of_element_located((By.CLASS_NAME, 'reward_point_redeem_result_error'))
+        )
+
+        if error_field:
+            self.log.logger.info('login failed')
+            return False
+        
         self.log.logger.info('login success')
+        return True
 
     def set_play_buttons(self):
         try:
@@ -125,24 +136,22 @@ class Bot():
         except:
             pass
 
-    def notify(self):
+    def notify(self, message):
         self.log.logger.info('notify')
         try:
             # notify via mercuriusbot.io
             secret = os.getenv('MERCURIUS_SECRET')
-            if hasattr(self, 'rolled_results') and hasattr(self, 'rolled_rp') and secret:
+            if secret:
                 res = requests.post(
                     'https://www.mercuriusbot.io/api/notify',
                     data={
                         'secret': secret,
-                        'message': 'rolled {} BTC and {} RP'.format(self.rolled_results.text, self.rolled_rp.text)
+                        'message': message
                     }
                 )
 
                 if res.status_code != 200:
                     self.log.logger.error(res.text)
-                else:
-                    self.log.logger.info('notify success')
         except:
             pass
 
@@ -150,18 +159,22 @@ class Bot():
         try:
             self.start_driver()
             self.get_page(self.base_url)
-            self.set_play_buttons()
 
-            if not hasattr(self, 'no_captcha_button') or not hasattr(self, 'play_button'):
-                self.login()
+            logged_in = self.login()
 
-            self.dissmiss_consent()
-            self.set_time_remaining()
+            if logged_in:
+                self.dissmiss_consent()
+                self.set_time_remaining()
 
-            if not hasattr(self, 'time_remaining') or not self.time_remaining:
-                self.roll()
-                self.notify()
+                if not hasattr(self, 'time_remaining') or not self.time_remaining:
+                    self.roll()
+
+                    if hasattr(self, 'rolled_results') and hasattr(self, 'rolled_rp'):
+                        self.notify('freebitco.in: rolled {} BTC and {} RP'.format(self.rolled_results.text, self.rolled_rp.text))
+                else:
+                    self.log.logger.info('already played')
             else:
-                self.log.logger.info('already played')
+                self.log.logger.error('login failed')                
+                self.notify('freebitco.in: login failed')
         finally:
             self.close_driver()
