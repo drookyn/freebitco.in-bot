@@ -118,11 +118,14 @@ class Bot():
             self.play_button.click()
 
             # search results
-            self.role_result = WebDriverWait(self.driver, 60).until(
+            self.rolled_results = WebDriverWait(self.driver, 60).until(
                 EC.visibility_of_element_located((By.ID, 'winnings'))
             )
-            self.log.logger.info('role success')
-            self.log.logger.info('rolled {} BTC'.format(self.role_result.text))
+            self.rolled_rp = WebDriverWait(self.driver, 60).until(
+                EC.visibility_of_element_located((By.ID, 'fp_reward_points_won'))
+            )
+            self.log.logger.info('roll success')
+            self.log.logger.info('rolled {} BTC and {} RP'.format(self.rolled_results.text, self.rolled_rp.text))
         except:
             pass
 
@@ -131,12 +134,12 @@ class Bot():
         try:
             # notify via mercuriusbot.io
             secret = os.getenv('MERCURIUS_SECRET')
-            if hasattr(self, 'role_result') and secret:
+            if hasattr(self, 'rolled_results') and hasattr(self, 'rolled_rp') and secret:
                 res = requests.post(
                     'https://www.mercuriusbot.io/api/notify',
                     data={
                         'secret': secret,
-                        'message': 'rolled {} BTC'.format(self.role_result.text)
+                        'message': 'rolled {} BTC and {} RP'.format(self.rolled_results.text, self.rolled_rp.text)
                     }
                 )
 
