@@ -6,7 +6,6 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.firefox.options import Options
-from pyvirtualdisplay import Display
 from random import randint
 from fake_useragent import UserAgent
 import os
@@ -20,8 +19,6 @@ class Bot():
 
     def start_driver(self):
         self.log.logger.info('starting driver')
-        self.display = Display(visible=0, size=(800, 600))
-        self.display.start()
         # get random useragent
         self.profile = webdriver.FirefoxProfile()
         self.profile.set_preference(
@@ -37,7 +34,6 @@ class Bot():
 
     def close_driver(self):
         self.log.logger.info('closing driver')
-        self.display.stop()
         self.driver.quit()
 
     def get_page(self, url):

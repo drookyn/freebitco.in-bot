@@ -8,8 +8,7 @@ from classes.Log import Log
 from classes.Scheduler import Scheduler
 
 # load enviroment variables
-env_path = Path('.') / '.env'
-load_dotenv(dotenv_path=env_path, verbose=True)
+load_dotenv(dotenv_path='.env', verbose=True)
 
 def main():
     # load sentry
