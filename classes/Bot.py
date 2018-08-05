@@ -67,28 +67,30 @@ class Bot():
         # send login data
         self.driver.find_element_by_id('login_button').click()
 
-        # check for error
-        error_field = WebDriverWait(self.driver, 10).until(
-            EC.visibility_of_element_located((By.CLASS_NAME, 'reward_point_redeem_result_error'))
-        )
+        try:
+            # check for error
+            error_field = WebDriverWait(self.driver, 5).until(
+                EC.visibility_of_element_located((By.CLASS_NAME, 'reward_point_redeem_result_error'))
+            )
 
-        if error_field:
+            self.logged_in = False
             self.log.logger.info('login failed')
-            return False
-        
-        self.log.logger.info('login success')
-        return True
+            self.notify('login failed')
+        except:
+            self.log.logger.info('login success')
+            self.logged_in = True
+            pass
 
     def set_play_buttons(self):
         try:
             # search no captcha button
-            self.no_captcha_button = WebDriverWait(self.driver, 10).until(
+            self.no_captcha_button = WebDriverWait(self.driver, 5).until(
                 EC.visibility_of_element_located(
                     (By.ID, 'play_without_captchas_button'))
             )
 
             # search play button
-            self.play_button = WebDriverWait(self.driver, 10).until(
+            self.play_button = WebDriverWait(self.driver, 5).until(
                 EC.visibility_of_element_located(
                     (By.ID, 'free_play_form_button'))
             )
@@ -100,18 +102,20 @@ class Bot():
             # search and click consent button
             consent_button = WebDriverWait(self.driver, 10).until(
                 EC.visibility_of_element_located(
-                    (By.XPATH, '//*[contains(@class, "cc_btn_accept_all")]'))
+                    (By.CLASS_NAME, 'cc_btn_accept_all')
+                )
             )
 
-            consent_button.click()
+            if consent_button:
+                consent_button.click()
         except:
             pass
 
     def set_time_remaining(self):
         try:
             # search time remaining
-            self.time_remaining = WebDriverWait(self.driver, 10).until(
-                EC.visibility_of_element_located((By.ID, 'time_remaining'))
+            self.time_remaining = WebDriverWait(self.driver, 5).until(
+                EC.visibility_of_element_located((By.CLASS_NAME, 'countdown_amount'))
             )
         except:
             pass
@@ -133,7 +137,8 @@ class Bot():
             )
             self.log.logger.info('roll success')
             self.log.logger.info('rolled {} BTC and {} RP'.format(self.rolled_results.text, self.rolled_rp.text))
-        except:
+        except Exception as e:
+            self.log.logger.error(str(e))
             pass
 
     def notify(self, message):
@@ -152,7 +157,8 @@ class Bot():
 
                 if res.status_code != 200:
                     self.log.logger.error(res.text)
-        except:
+        except Exception as e:
+            self.log.logger.error(str(e))
             pass
 
     def work(self):
@@ -160,9 +166,9 @@ class Bot():
             self.start_driver()
             self.get_page(self.base_url)
 
-            logged_in = self.login()
+            self.login()
 
-            if logged_in:
+            if hasattr(self, 'logged_in') and self.logged_in:
                 self.dissmiss_consent()
                 self.set_time_remaining()
 
@@ -173,8 +179,5 @@ class Bot():
                         self.notify('freebitco.in: rolled {} BTC and {} RP'.format(self.rolled_results.text, self.rolled_rp.text))
                 else:
                     self.log.logger.info('already played')
-            else:
-                self.log.logger.error('login failed')                
-                self.notify('freebitco.in: login failed')
         finally:
             self.close_driver()

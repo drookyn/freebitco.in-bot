@@ -1,8 +1,7 @@
 from raven import Client
 from dotenv import load_dotenv
-from pathlib import Path
-import os.path
 import sys
+import os
 
 from classes.Log import Log
 from classes.Scheduler import Scheduler
